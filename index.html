@@ -543,8 +543,8 @@
             }
             
             activeTimer = flightIndex;
-            let totalSeconds = minutes * 60;
-            const warningTime = 2 * 60;
+            const warningTime = 2 * 60; // 2 minutes in seconds
+            const endTime = Date.now() + (minutes * 60 * 1000);
             
             const card = document.getElementById(`flight-${flightIndex}`);
             const timerDisplay = document.getElementById(`timer-${flightIndex}`);
@@ -555,27 +555,36 @@
             startBtn.style.display = 'none';
             stopBtn.style.display = 'block';
             
+            // Store timer data
+            card.dataset.endTime = endTime;
+            card.dataset.warningTriggered = 'false';
+            
             const interval = setInterval(() => {
-                totalSeconds--;
+                const now = Date.now();
+                const remainingMs = endTime - now;
+                const totalSeconds = Math.max(0, Math.floor(remainingMs / 1000));
                 
                 const mins = Math.floor(totalSeconds / 60);
                 const secs = totalSeconds % 60;
                 timerDisplay.textContent = `${mins}:${secs.toString().padStart(2, '0')} remaining`;
                 
-                if (totalSeconds === warningTime) {
+                // Check for warning (2 minutes remaining)
+                if (totalSeconds <= warningTime && card.dataset.warningTriggered === 'false') {
                     card.classList.add('timer-warning');
                     timerDisplay.classList.add('warning');
+                    card.dataset.warningTriggered = 'true';
                     playWarningSound();
                 }
                 
-                if (totalSeconds <= 0) {
+                // Check if time is up
+                if (remainingMs <= 0) {
                     clearInterval(interval);
                     stopWarningSound();
                     playFinalSound();
                     alert('⚠️ TIME UP! The timer has ended.');
                     resetTimer(flightIndex);
                 }
-            }, 1000);
+            }, 100); // Check every 100ms for better accuracy
             
             card.dataset.intervalId = interval;
         }
@@ -609,9 +618,18 @@
         }
         
         function playWarningSound() {
-            warningAudio = new Audio('https://cdnjs.cloudflare.com/ajax/libs/ion-sound/3.0.7/sounds/bell_ring.mp3');
-            warningAudio.loop = true;
-            warningAudio.play().catch(e => console.log('Audio play prevented:', e));
+            try {
+                warningAudio = new Audio('https://cdnjs.cloudflare.com/ajax/libs/ion-sound/3.0.7/sounds/bell_ring.mp3');
+                warningAudio.loop = true;
+                warningAudio.volume = 0.7;
+                warningAudio.play().catch(e => {
+                    console.log('Audio play prevented:', e);
+                    // Try playing again after a short delay
+                    setTimeout(() => warningAudio.play().catch(() => {}), 100);
+                });
+            } catch (e) {
+                console.log('Error creating audio:', e);
+            }
         }
         
         function stopWarningSound() {
@@ -623,8 +641,17 @@
         }
         
         function playFinalSound() {
-            finalAudio = new Audio('https://cdnjs.cloudflare.com/ajax/libs/ion-sound/3.0.7/sounds/metal_plate.mp3');
-            finalAudio.play().catch(e => console.log('Audio play prevented:', e));
+            try {
+                finalAudio = new Audio('https://cdnjs.cloudflare.com/ajax/libs/ion-sound/3.0.7/sounds/metal_plate.mp3');
+                finalAudio.volume = 1.0;
+                finalAudio.play().catch(e => {
+                    console.log('Audio play prevented:', e);
+                    // Try playing again after a short delay
+                    setTimeout(() => finalAudio.play().catch(() => {}), 100);
+                });
+            } catch (e) {
+                console.log('Error creating audio:', e);
+            }
         }
         
         function stopFinalSound() {
@@ -634,6 +661,16 @@
                 finalAudio = null;
             }
         }
+        
+        // Handle page visibility changes to ensure timer keeps running
+        document.addEventListener('visibilitychange', function() {
+            if (document.hidden) {
+                console.log('Page hidden - timer continues in background');
+            } else {
+                console.log('Page visible - timer syncing');
+                // Timer will automatically sync because we're using Date.now()
+            }
+        });
         
         function updateResultsTitle(count = flightData.length) {
             document.getElementById('resultsTitle').textContent = `Flight Results (${count})`;
