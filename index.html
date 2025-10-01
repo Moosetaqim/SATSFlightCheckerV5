@@ -447,6 +447,11 @@
         }
         
         function displayResults() {
+            // If a timer is active, don't refresh the display
+            if (activeTimer !== null) {
+                return;
+            }
+            
             const searchQuery = document.getElementById('searchQuery').value.toLowerCase();
             const daySearch = document.getElementById('daySearch').value.toLowerCase();
             
@@ -551,6 +556,14 @@
             const startBtn = document.getElementById(`start-btn-${flightIndex}`);
             const stopBtn = document.getElementById(`stop-btn-${flightIndex}`);
             
+            // Hide all other flight cards
+            const allCards = document.querySelectorAll('.flight-card');
+            allCards.forEach((c, idx) => {
+                if (idx !== flightIndex) {
+                    c.style.display = 'none';
+                }
+            });
+            
             card.classList.add('timer-active');
             startBtn.style.display = 'none';
             stopBtn.style.display = 'block';
@@ -607,6 +620,12 @@
             const timerDisplay = document.getElementById(`timer-${flightIndex}`);
             const startBtn = document.getElementById(`start-btn-${flightIndex}`);
             const stopBtn = document.getElementById(`stop-btn-${flightIndex}`);
+            
+            // Show all flight cards again
+            const allCards = document.querySelectorAll('.flight-card');
+            allCards.forEach(c => {
+                c.style.display = 'block';
+            });
             
             card.classList.remove('timer-active', 'timer-warning');
             timerDisplay.classList.remove('warning');
