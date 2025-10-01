@@ -619,14 +619,29 @@
         
         function playWarningSound() {
             try {
+                // Stop any existing warning sound first
+                stopWarningSound();
+                
                 warningAudio = new Audio('https://cdnjs.cloudflare.com/ajax/libs/ion-sound/3.0.7/sounds/bell_ring.mp3');
                 warningAudio.loop = true;
                 warningAudio.volume = 0.7;
-                warningAudio.play().catch(e => {
-                    console.log('Audio play prevented:', e);
-                    // Try playing again after a short delay
-                    setTimeout(() => warningAudio.play().catch(() => {}), 100);
-                });
+                
+                // Pre-load the audio
+                warningAudio.load();
+                
+                const playPromise = warningAudio.play();
+                if (playPromise !== undefined) {
+                    playPromise.then(() => {
+                        console.log('Warning sound playing');
+                    }).catch(e => {
+                        console.log('Audio play prevented:', e);
+                        // Retry with user interaction context
+                        document.addEventListener('click', function playOnClick() {
+                            warningAudio.play().catch(() => {});
+                            document.removeEventListener('click', playOnClick);
+                        }, { once: true });
+                    });
+                }
             } catch (e) {
                 console.log('Error creating audio:', e);
             }
@@ -634,21 +649,41 @@
         
         function stopWarningSound() {
             if (warningAudio) {
-                warningAudio.pause();
-                warningAudio.currentTime = 0;
+                try {
+                    warningAudio.pause();
+                    warningAudio.currentTime = 0;
+                    warningAudio.loop = false;
+                } catch (e) {
+                    console.log('Error stopping warning sound:', e);
+                }
                 warningAudio = null;
             }
         }
         
         function playFinalSound() {
             try {
+                // Stop any existing final sound first
+                stopFinalSound();
+                
                 finalAudio = new Audio('https://cdnjs.cloudflare.com/ajax/libs/ion-sound/3.0.7/sounds/metal_plate.mp3');
                 finalAudio.volume = 1.0;
-                finalAudio.play().catch(e => {
-                    console.log('Audio play prevented:', e);
-                    // Try playing again after a short delay
-                    setTimeout(() => finalAudio.play().catch(() => {}), 100);
-                });
+                
+                // Pre-load the audio
+                finalAudio.load();
+                
+                const playPromise = finalAudio.play();
+                if (playPromise !== undefined) {
+                    playPromise.then(() => {
+                        console.log('Final sound playing');
+                    }).catch(e => {
+                        console.log('Audio play prevented:', e);
+                        // Retry with user interaction context
+                        document.addEventListener('click', function playOnClick() {
+                            finalAudio.play().catch(() => {});
+                            document.removeEventListener('click', playOnClick);
+                        }, { once: true });
+                    });
+                }
             } catch (e) {
                 console.log('Error creating audio:', e);
             }
@@ -656,8 +691,12 @@
         
         function stopFinalSound() {
             if (finalAudio) {
-                finalAudio.pause();
-                finalAudio.currentTime = 0;
+                try {
+                    finalAudio.pause();
+                    finalAudio.currentTime = 0;
+                } catch (e) {
+                    console.log('Error stopping final sound:', e);
+                }
                 finalAudio = null;
             }
         }
